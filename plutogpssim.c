@@ -41,6 +41,7 @@
 #define BUFFER_SIZE (NUM_SAMPLES * 2 * sizeof(int16_t))
 
 #if defined(__MACH__) || defined(__APPLE__)
+
 typedef struct cpu_set {
     uint32_t count;
 } cpu_set_t;
@@ -79,6 +80,7 @@ static struct stream_cfg plutotx;
 static short *iq_buff = NULL;
 static pthread_t pluto_thread;
 static char rinex_date[20];
+const char default_filename[] = "brdc.n";
 
 struct ftp_file {
     const char *filename;
@@ -90,73 +92,73 @@ const double iq_gain = 18.0;
 const int iq_offset = 32;
 const int iq_shift = 6;
 const int sinTable512[] = {
-    0, 402, 804, 1206, 1607, 2009, 2410, 2811, 3211, 3611, 4011, 4409, 4807, 5205, 5601, 5997,
-    6392, 6786, 7179, 7571, 7961, 8351, 8739, 9126, 9511, 9895, 10278, 10659, 11038, 11416, 11792, 12166,
-    12539, 12909, 13278, 13645, 14009, 14372, 14732, 15090, 15446, 15799, 16150, 16499, 16845, 17189, 17530, 17868,
-    18204, 18537, 18867, 19194, 19519, 19840, 20159, 20474, 20787, 21096, 21402, 21705, 22004, 22301, 22594, 22883,
-    23169, 23452, 23731, 24006, 24278, 24546, 24811, 25072, 25329, 25582, 25831, 26077, 26318, 26556, 26789, 27019,
-    27244, 27466, 27683, 27896, 28105, 28309, 28510, 28706, 28897, 29085, 29268, 29446, 29621, 29790, 29955, 30116,
-    30272, 30424, 30571, 30713, 30851, 30984, 31113, 31236, 31356, 31470, 31580, 31684, 31785, 31880, 31970, 32056,
-    32137, 32213, 32284, 32350, 32412, 32468, 32520, 32567, 32609, 32646, 32678, 32705, 32727, 32744, 32757, 32764,
-    32767, 32764, 32757, 32744, 32727, 32705, 32678, 32646, 32609, 32567, 32520, 32468, 32412, 32350, 32284, 32213,
-    32137, 32056, 31970, 31880, 31785, 31684, 31580, 31470, 31356, 31236, 31113, 30984, 30851, 30713, 30571, 30424,
-    30272, 30116, 29955, 29790, 29621, 29446, 29268, 29085, 28897, 28706, 28510, 28309, 28105, 27896, 27683, 27466,
-    27244, 27019, 26789, 26556, 26318, 26077, 25831, 25582, 25329, 25072, 24811, 24546, 24278, 24006, 23731, 23452,
-    23169, 22883, 22594, 22301, 22004, 21705, 21402, 21096, 20787, 20474, 20159, 19840, 19519, 19194, 18867, 18537,
-    18204, 17868, 17530, 17189, 16845, 16499, 16150, 15799, 15446, 15090, 14732, 14372, 14009, 13645, 13278, 12909,
-    12539, 12166, 11792, 11416, 11038, 10659, 10278, 9895, 9511, 9126, 8739, 8351, 7961, 7571, 7179, 6786,
-    6392, 5997, 5601, 5205, 4807, 4409, 4011, 3611, 3211, 2811, 2410, 2009, 1607, 1206, 804, 402,
-    0, -402, -804, -1206, -1607, -2009, -2410, -2811, -3211, -3611, -4011, -4409, -4807, -5205, -5601, -5997,
-    -6392, -6786, -7179, -7571, -7961, -8351, -8739, -9126, -9511, -9895, -10278, -10659, -11038, -11416, -11792, -12166,
-    -12539, -12909, -13278, -13645, -14009, -14372, -14732, -15090, -15446, -15799, -16150, -16499, -16845, -17189, -17530, -17868,
-    -18204, -18537, -18867, -19194, -19519, -19840, -20159, -20474, -20787, -21096, -21402, -21705, -22004, -22301, -22594, -22883,
-    -23169, -23452, -23731, -24006, -24278, -24546, -24811, -25072, -25329, -25582, -25831, -26077, -26318, -26556, -26789, -27019,
-    -27244, -27466, -27683, -27896, -28105, -28309, -28510, -28706, -28897, -29085, -29268, -29446, -29621, -29790, -29955, -30116,
-    -30272, -30424, -30571, -30713, -30851, -30984, -31113, -31236, -31356, -31470, -31580, -31684, -31785, -31880, -31970, -32056,
-    -32137, -32213, -32284, -32350, -32412, -32468, -32520, -32567, -32609, -32646, -32678, -32705, -32727, -32744, -32757, -32764,
-    -32767, -32764, -32757, -32744, -32727, -32705, -32678, -32646, -32609, -32567, -32520, -32468, -32412, -32350, -32284, -32213,
-    -32137, -32056, -31970, -31880, -31785, -31684, -31580, -31470, -31356, -31236, -31113, -30984, -30851, -30713, -30571, -30424,
-    -30272, -30116, -29955, -29790, -29621, -29446, -29268, -29085, -28897, -28706, -28510, -28309, -28105, -27896, -27683, -27466,
-    -27244, -27019, -26789, -26556, -26318, -26077, -25831, -25582, -25329, -25072, -24811, -24546, -24278, -24006, -23731, -23452,
-    -23169, -22883, -22594, -22301, -22004, -21705, -21402, -21096, -20787, -20474, -20159, -19840, -19519, -19194, -18867, -18537,
-    -18204, -17868, -17530, -17189, -16845, -16499, -16150, -15799, -15446, -15090, -14732, -14372, -14009, -13645, -13278, -12909,
-    -12539, -12166, -11792, -11416, -11038, -10659, -10278, -9895, -9511, -9126, -8739, -8351, -7961, -7571, -7179, -6786,
-    -6392, -5997, -5601, -5205, -4807, -4409, -4011, -3611, -3211, -2811, -2410, -2009, -1607, -1206, -804, -402,
+0, 6, 12, 18, 25, 31, 37, 43, 50, 56, 62, 68, 75, 81, 87, 93, 
+99, 106, 112, 118, 124, 130, 136, 142, 148, 154, 160, 166, 172, 178, 184, 190, 
+195, 201, 207, 213, 218, 224, 230, 235, 241, 246, 252, 257, 263, 268, 273, 279, 
+284, 289, 294, 299, 304, 310, 314, 319, 324, 329, 334, 339, 343, 348, 353, 357, 
+362, 366, 370, 375, 379, 383, 387, 391, 395, 399, 403, 407, 411, 414, 418, 422, 
+425, 429, 432, 435, 439, 442, 445, 448, 451, 454, 457, 460, 462, 465, 468, 470, 
+473, 475, 477, 479, 482, 484, 486, 488, 489, 491, 493, 495, 496, 498, 499, 500, 
+502, 503, 504, 505, 506, 507, 508, 508, 509, 510, 510, 511, 511, 511, 511, 511, 
+512, 511, 511, 511, 511, 511, 510, 510, 509, 508, 508, 507, 506, 505, 504, 503, 
+502, 500, 499, 498, 496, 495, 493, 491, 489, 488, 486, 484, 482, 479, 477, 475, 
+473, 470, 468, 465, 462, 460, 457, 454, 451, 448, 445, 442, 439, 435, 432, 429, 
+425, 422, 418, 414, 411, 407, 403, 399, 395, 391, 387, 383, 379, 375, 370, 366, 
+362, 357, 353, 348, 343, 339, 334, 329, 324, 319, 314, 310, 304, 299, 294, 289, 
+284, 279, 273, 268, 263, 257, 252, 246, 241, 235, 230, 224, 218, 213, 207, 201, 
+195, 190, 184, 178, 172, 166, 160, 154, 148, 142, 136, 130, 124, 118, 112, 106, 
+99, 93, 87, 81, 75, 68, 62, 56, 50, 43, 37, 31, 25, 18, 12, 6, 
+0, -6, -12, -18, -25, -31, -37, -43, -50, -56, -62, -68, -75, -81, -87, -93, 
+-99, -106, -112, -118, -124, -130, -136, -142, -148, -154, -160, -166, -172, -178, -184, -190, 
+-195, -201, -207, -213, -218, -224, -230, -235, -241, -246, -252, -257, -263, -268, -273, -279, 
+-284, -289, -294, -299, -304, -310, -314, -319, -324, -329, -334, -339, -343, -348, -353, -357, 
+-362, -366, -370, -375, -379, -383, -387, -391, -395, -399, -403, -407, -411, -414, -418, -422, 
+-425, -429, -432, -435, -439, -442, -445, -448, -451, -454, -457, -460, -462, -465, -468, -470, 
+-473, -475, -477, -479, -482, -484, -486, -488, -489, -491, -493, -495, -496, -498, -499, -500, 
+-502, -503, -504, -505, -506, -507, -508, -508, -509, -510, -510, -511, -511, -511, -511, -511, 
+-512, -511, -511, -511, -511, -511, -510, -510, -509, -508, -508, -507, -506, -505, -504, -503, 
+-502, -500, -499, -498, -496, -495, -493, -491, -489, -488, -486, -484, -482, -479, -477, -475, 
+-473, -470, -468, -465, -462, -460, -457, -454, -451, -448, -445, -442, -439, -435, -432, -429, 
+-425, -422, -418, -414, -411, -407, -403, -399, -395, -391, -387, -383, -379, -375, -370, -366, 
+-362, -357, -353, -348, -343, -339, -334, -329, -324, -319, -314, -310, -304, -299, -294, -289, 
+-284, -279, -273, -268, -263, -257, -252, -246, -241, -235, -230, -224, -218, -213, -207, -201, 
+-195, -190, -184, -178, -172, -166, -160, -154, -148, -142, -136, -130, -124, -118, -112, -106, 
+-99, -93, -87, -81, -75, -68, -62, -56, -50, -43, -37, -31, -25, -18, -12, -6, 
 };
 
 const int cosTable512[] = {
-    32767, 32764, 32757, 32744, 32727, 32705, 32678, 32646, 32609, 32567, 32520, 32468, 32412, 32350, 32284, 32213,
-    32137, 32056, 31970, 31880, 31785, 31684, 31580, 31470, 31356, 31236, 31113, 30984, 30851, 30713, 30571, 30424,
-    30272, 30116, 29955, 29790, 29621, 29446, 29268, 29085, 28897, 28706, 28510, 28309, 28105, 27896, 27683, 27466,
-    27244, 27019, 26789, 26556, 26318, 26077, 25831, 25582, 25329, 25072, 24811, 24546, 24278, 24006, 23731, 23452,
-    23169, 22883, 22594, 22301, 22004, 21705, 21402, 21096, 20787, 20474, 20159, 19840, 19519, 19194, 18867, 18537,
-    18204, 17868, 17530, 17189, 16845, 16499, 16150, 15799, 15446, 15090, 14732, 14372, 14009, 13645, 13278, 12909,
-    12539, 12166, 11792, 11416, 11038, 10659, 10278, 9895, 9511, 9126, 8739, 8351, 7961, 7571, 7179, 6786,
-    6392, 5997, 5601, 5205, 4807, 4409, 4011, 3611, 3211, 2811, 2410, 2009, 1607, 1206, 804, 402,
-    0, -402, -804, -1206, -1607, -2009, -2410, -2811, -3211, -3611, -4011, -4409, -4807, -5205, -5601, -5997,
-    -6392, -6786, -7179, -7571, -7961, -8351, -8739, -9126, -9511, -9895, -10278, -10659, -11038, -11416, -11792, -12166,
-    -12539, -12909, -13278, -13645, -14009, -14372, -14732, -15090, -15446, -15799, -16150, -16499, -16845, -17189, -17530, -17868,
-    -18204, -18537, -18867, -19194, -19519, -19840, -20159, -20474, -20787, -21096, -21402, -21705, -22004, -22301, -22594, -22883,
-    -23169, -23452, -23731, -24006, -24278, -24546, -24811, -25072, -25329, -25582, -25831, -26077, -26318, -26556, -26789, -27019,
-    -27244, -27466, -27683, -27896, -28105, -28309, -28510, -28706, -28897, -29085, -29268, -29446, -29621, -29790, -29955, -30116,
-    -30272, -30424, -30571, -30713, -30851, -30984, -31113, -31236, -31356, -31470, -31580, -31684, -31785, -31880, -31970, -32056,
-    -32137, -32213, -32284, -32350, -32412, -32468, -32520, -32567, -32609, -32646, -32678, -32705, -32727, -32744, -32757, -32764,
-    -32767, -32764, -32757, -32744, -32727, -32705, -32678, -32646, -32609, -32567, -32520, -32468, -32412, -32350, -32284, -32213,
-    -32137, -32056, -31970, -31880, -31785, -31684, -31580, -31470, -31356, -31236, -31113, -30984, -30851, -30713, -30571, -30424,
-    -30272, -30116, -29955, -29790, -29621, -29446, -29268, -29085, -28897, -28706, -28510, -28309, -28105, -27896, -27683, -27466,
-    -27244, -27019, -26789, -26556, -26318, -26077, -25831, -25582, -25329, -25072, -24811, -24546, -24278, -24006, -23731, -23452,
-    -23169, -22883, -22594, -22301, -22004, -21705, -21402, -21096, -20787, -20474, -20159, -19840, -19519, -19194, -18867, -18537,
-    -18204, -17868, -17530, -17189, -16845, -16499, -16150, -15799, -15446, -15090, -14732, -14372, -14009, -13645, -13278, -12909,
-    -12539, -12166, -11792, -11416, -11038, -10659, -10278, -9895, -9511, -9126, -8739, -8351, -7961, -7571, -7179, -6786,
-    -6392, -5997, -5601, -5205, -4807, -4409, -4011, -3611, -3211, -2811, -2410, -2009, -1607, -1206, -804, -402,
-    0, 402, 804, 1206, 1607, 2009, 2410, 2811, 3211, 3611, 4011, 4409, 4807, 5205, 5601, 5997,
-    6392, 6786, 7179, 7571, 7961, 8351, 8739, 9126, 9511, 9895, 10278, 10659, 11038, 11416, 11792, 12166,
-    12539, 12909, 13278, 13645, 14009, 14372, 14732, 15090, 15446, 15799, 16150, 16499, 16845, 17189, 17530, 17868,
-    18204, 18537, 18867, 19194, 19519, 19840, 20159, 20474, 20787, 21096, 21402, 21705, 22004, 22301, 22594, 22883,
-    23169, 23452, 23731, 24006, 24278, 24546, 24811, 25072, 25329, 25582, 25831, 26077, 26318, 26556, 26789, 27019,
-    27244, 27466, 27683, 27896, 28105, 28309, 28510, 28706, 28897, 29085, 29268, 29446, 29621, 29790, 29955, 30116,
-    30272, 30424, 30571, 30713, 30851, 30984, 31113, 31236, 31356, 31470, 31580, 31684, 31785, 31880, 31970, 32056,
-    32137, 32213, 32284, 32350, 32412, 32468, 32520, 32567, 32609, 32646, 32678, 32705, 32727, 32744, 32757, 32764,
+512, 511, 511, 511, 511, 511, 510, 510, 509, 508, 508, 507, 506, 505, 504, 503, 
+502, 500, 499, 498, 496, 495, 493, 491, 489, 488, 486, 484, 482, 479, 477, 475, 
+473, 470, 468, 465, 462, 460, 457, 454, 451, 448, 445, 442, 439, 435, 432, 429, 
+425, 422, 418, 414, 411, 407, 403, 399, 395, 391, 387, 383, 379, 375, 370, 366, 
+362, 357, 353, 348, 343, 339, 334, 329, 324, 319, 314, 310, 304, 299, 294, 289, 
+284, 279, 273, 268, 263, 257, 252, 246, 241, 235, 230, 224, 218, 213, 207, 201, 
+195, 190, 184, 178, 172, 166, 160, 154, 148, 142, 136, 130, 124, 118, 112, 106, 
+99, 93, 87, 81, 75, 68, 62, 56, 50, 43, 37, 31, 25, 18, 12, 6, 
+0, -6, -12, -18, -25, -31, -37, -43, -50, -56, -62, -68, -75, -81, -87, -93, 
+-99, -106, -112, -118, -124, -130, -136, -142, -148, -154, -160, -166, -172, -178, -184, -190, 
+-195, -201, -207, -213, -218, -224, -230, -235, -241, -246, -252, -257, -263, -268, -273, -279, 
+-284, -289, -294, -299, -304, -310, -314, -319, -324, -329, -334, -339, -343, -348, -353, -357, 
+-362, -366, -370, -375, -379, -383, -387, -391, -395, -399, -403, -407, -411, -414, -418, -422, 
+-425, -429, -432, -435, -439, -442, -445, -448, -451, -454, -457, -460, -462, -465, -468, -470, 
+-473, -475, -477, -479, -482, -484, -486, -488, -489, -491, -493, -495, -496, -498, -499, -500, 
+-502, -503, -504, -505, -506, -507, -508, -508, -509, -510, -510, -511, -511, -511, -511, -511, 
+-512, -511, -511, -511, -511, -511, -510, -510, -509, -508, -508, -507, -506, -505, -504, -503, 
+-502, -500, -499, -498, -496, -495, -493, -491, -489, -488, -486, -484, -482, -479, -477, -475, 
+-473, -470, -468, -465, -462, -460, -457, -454, -451, -448, -445, -442, -439, -435, -432, -429, 
+-425, -422, -418, -414, -411, -407, -403, -399, -395, -391, -387, -383, -379, -375, -370, -366, 
+-362, -357, -353, -348, -343, -339, -334, -329, -324, -319, -314, -310, -304, -299, -294, -289, 
+-284, -279, -273, -268, -263, -257, -252, -246, -241, -235, -230, -224, -218, -213, -207, -201, 
+-195, -190, -184, -178, -172, -166, -160, -154, -148, -142, -136, -130, -124, -118, -112, -106, 
+-99, -93, -87, -81, -75, -68, -62, -56, -50, -43, -37, -31, -25, -18, -12, -6, 
+0, 6, 12, 18, 25, 31, 37, 43, 50, 56, 62, 68, 75, 81, 87, 93, 
+99, 106, 112, 118, 124, 130, 136, 142, 148, 154, 160, 166, 172, 178, 184, 190, 
+195, 201, 207, 213, 218, 224, 230, 235, 241, 246, 252, 257, 263, 268, 273, 279, 
+284, 289, 294, 299, 304, 310, 314, 319, 324, 329, 334, 339, 343, 348, 353, 357, 
+362, 366, 370, 375, 379, 383, 387, 391, 395, 399, 403, 407, 411, 414, 418, 422, 
+425, 429, 432, 435, 439, 442, 445, 448, 451, 454, 457, 460, 462, 465, 468, 470, 
+473, 475, 477, 479, 482, 484, 486, 488, 489, 491, 493, 495, 496, 498, 499, 500, 
+502, 503, 504, 505, 506, 507, 508, 508, 509, 510, 510, 511, 511, 511, 511, 511, 
 };
 
 // Receiver antenna attenuation in dB for boresight angle = 0:5:180 [deg]
@@ -1578,18 +1580,17 @@ static void usage(void) {
     return;
 }
 
-static void handle_sig(int sig)
-{
-    NOTUSED(sig);
-    signal(SIGINT, SIG_DFL);  // reset signal handler - bit extra safety
-    pthread_mutex_unlock(&plutotx.data_mutex);
+static void handle_sig(int sig) {
+    signal(sig, SIG_DFL); // reset signal handler - bit extra safety
     plutotx.exit = true;
+    pthread_mutex_unlock(&plutotx.data_mutex);
     pthread_join(pluto_thread, NULL); /* Wait on Pluto TX thread exit */
     pthread_mutex_destroy(&plutotx.data_mutex);
     pthread_cond_destroy(&plutotx.data_cond);
 }
 
 #if defined(__MACH__) || defined(__APPLE__)
+
 static int pthread_setaffinity_np(pthread_t thread, size_t cpu_size,
         cpu_set_t *cpu_set) {
     thread_port_t mach_thread;
@@ -1608,21 +1609,21 @@ static int pthread_setaffinity_np(pthread_t thread, size_t cpu_size,
 #endif
 
 // Set affinity of calling thread to specific core on a multi-core CPU
+
 static int thread_to_core(int core_id) {
-   int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-   if (core_id < 0 || core_id >= num_cores)
-      return EINVAL;
+    int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    if (core_id < 0 || core_id >= num_cores)
+        return EINVAL;
 
-   cpu_set_t cpuset;
-   CPU_ZERO(&cpuset);
-   CPU_SET(core_id, &cpuset);
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core_id, &cpuset);
 
-   pthread_t current_thread = pthread_self();
-   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+    pthread_t current_thread = pthread_self();
+    return pthread_setaffinity_np(current_thread, sizeof (cpu_set_t), &cpuset);
 }
 
-void *pluto_tx_thread_ep(void *arg)
-{
+void *pluto_tx_thread_ep(void *arg) {
     NOTUSED(arg);
     char buf[1024];
     struct iio_context *ctx = NULL;
@@ -1638,7 +1639,7 @@ void *pluto_tx_thread_ep(void *arg)
     // Create IIO context to access ADALM-Pluto
     ctx = iio_create_default_context();
     if (ctx == NULL) {
-        if(plutotx.hostname != NULL) {
+        if (plutotx.hostname != NULL) {
             ctx = iio_create_network_context(plutotx.hostname);
         } else if (plutotx.uri != NULL) {
             ctx = iio_create_context_from_uri(plutotx.uri);
@@ -1648,7 +1649,7 @@ void *pluto_tx_thread_ep(void *arg)
     }
 
     if (ctx == NULL) {
-        iio_strerror(errno, buf, sizeof(buf));
+        iio_strerror(errno, buf, sizeof (buf));
         fprintf(stderr, "Failed creating IIO context: %s\n", buf);
         goto pluto_thread_exit;
     }
@@ -1661,7 +1662,7 @@ void *pluto_tx_thread_ep(void *arg)
 
     tx = iio_context_find_device(ctx, "cf-ad9361-dds-core-lpc");
     if (tx == NULL) {
-        iio_strerror(errno, buf, sizeof(buf));
+        iio_strerror(errno, buf, sizeof (buf));
         fprintf(stderr, "Error opening PLUTOSDR TX device: %s\n", buf);
         goto pluto_thread_exit;
     }
@@ -1677,12 +1678,12 @@ void *pluto_tx_thread_ep(void *arg)
     iio_channel_attr_write_double(phy_chn, "hardwaregain", plutotx.gain_db);
 
     iio_channel_attr_write_bool(
-        iio_device_find_channel(phydev, "altvoltage0", true)
-        , "powerdown", true); // Turn OFF RX LO
+            iio_device_find_channel(phydev, "altvoltage0", true)
+            , "powerdown", true); // Turn OFF RX LO
 
     iio_channel_attr_write_longlong(
-        iio_device_find_channel(phydev, "altvoltage1", true)
-        , "frequency", plutotx.lo_hz); // Set TX LO frequency
+            iio_device_find_channel(phydev, "altvoltage1", true)
+            , "frequency", plutotx.lo_hz); // Set TX LO frequency
 
     tx0_i = iio_device_find_channel(tx, "voltage0", true);
     if (!tx0_i)
@@ -1704,11 +1705,11 @@ void *pluto_tx_thread_ep(void *arg)
     }
 
     iio_channel_attr_write_bool(
-        iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
-        , "powerdown", false); // Turn ON TX LO
+            iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
+            , "powerdown", false); // Turn ON TX LO
 
     int32_t ntx = 0;
-    char *ptx_buffer = (char *)iio_buffer_start(tx_buffer);
+    char *ptx_buffer = (char *) iio_buffer_start(tx_buffer);
 
     while (!plutotx.exit) {
         pthread_mutex_lock(&plutotx.data_mutex);
@@ -1718,22 +1719,31 @@ void *pluto_tx_thread_ep(void *arg)
         // Schedule TX buffer
         ntx = iio_buffer_push(tx_buffer);
         if (ntx < 0) {
-            fprintf(stderr,"Error pushing buf %d\n", (int) ntx);
-            break;;
+            fprintf(stderr, "Error pushing buf %d\n", (int) ntx);
+            break;
+            ;
         }
     }
 
 pluto_thread_exit:
     if (ctx) {
         iio_channel_attr_write_bool(
-            iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
-            , "powerdown", true); // Turn OFF TX LO
+                iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
+                , "powerdown", true); // Turn OFF TX LO
     }
 
-    if (tx_buffer) { iio_buffer_destroy(tx_buffer); }
-    if (tx0_i) { iio_channel_disable(tx0_i); }
-    if (tx0_q) { iio_channel_disable(tx0_q); }
-    if (ctx) { iio_context_destroy(ctx); }
+    if (tx_buffer) {
+        iio_buffer_destroy(tx_buffer);
+    }
+    if (tx0_i) {
+        iio_channel_disable(tx0_i);
+    }
+    if (tx0_q) {
+        iio_channel_disable(tx0_q);
+    }
+    if (ctx) {
+        iio_context_destroy(ctx);
+    }
 
     // Wake the main thread (if it's still waiting)
     pthread_mutex_lock(&plutotx.data_mutex);
@@ -1747,16 +1757,15 @@ pluto_thread_exit:
 #endif
 }
 
-static size_t fwrite_rinex(void *buffer, size_t size, size_t nmemb, void *stream)
-{
-  struct ftp_file *out = (struct ftp_file *)stream;
-  if(out && !out->stream) {
-    /* open file for writing */
-    out->stream = fopen(out->filename, "wb");
-    if(!out->stream)
-      return -1; /* failure, can't open file to write */
-  }
-  return fwrite(buffer, size, nmemb, out->stream);
+static size_t fwrite_rinex(void *buffer, size_t size, size_t nmemb, void *stream) {
+    struct ftp_file *out = (struct ftp_file *) stream;
+    if (out && !out->stream) {
+        /* open file for writing */
+        out->stream = fopen(out->filename, "wb");
+        if (!out->stream)
+            return -1; /* failure, can't open file to write */
+    }
+    return fwrite(buffer, size, nmemb, out->stream);
 }
 
 int main(int argc, char *argv[]) {
@@ -1835,6 +1844,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sig);
     signal(SIGTERM, handle_sig);
     signal(SIGQUIT, handle_sig);
+    signal(SIGABRT, handle_sig);
 
     /* On a multi-core CPU we run the main thread and reader thread on different cores.
      * Try sticking the main thread to core 1
@@ -1867,7 +1877,7 @@ int main(int argc, char *argv[]) {
                 llh2xyz(llh, xyz[0]); // Convert llh to xyz
                 break;
             case 's':
-                plutotx.fs_hz = (long long)atoi(optarg);
+                plutotx.fs_hz = (long long) atoi(optarg);
                 if (plutotx.fs_hz < MHZ(1.0)) {
                     fprintf(stderr, "ERROR: Invalid sampling frequency.\n");
                     exit(1);
@@ -1911,13 +1921,13 @@ int main(int argc, char *argv[]) {
                 break;
             case 'A':
                 plutotx.gain_db = atof(optarg);
-                if(plutotx.gain_db > 0.0) plutotx.gain_db = 0.0;
-                if(plutotx.gain_db < -80.0) plutotx.gain_db = -80.0;
+                if (plutotx.gain_db > 0.0) plutotx.gain_db = 0.0;
+                if (plutotx.gain_db < -80.0) plutotx.gain_db = -80.0;
                 break;
             case 'B':
                 plutotx.bw_hz = MHZ(atof(optarg));
-                if(plutotx.bw_hz > MHZ(5.0)) plutotx.bw_hz = MHZ(5.0);
-                if(plutotx.bw_hz < MHZ(1.0)) plutotx.bw_hz = MHZ(1.0);
+                if (plutotx.bw_hz > MHZ(5.0)) plutotx.bw_hz = MHZ(5.0);
+                if (plutotx.bw_hz < MHZ(1.0)) plutotx.bw_hz = MHZ(1.0);
                 break;
             case 'U':
                 plutotx.uri = optarg;
@@ -1955,7 +1965,7 @@ int main(int argc, char *argv[]) {
     ////////////////////////////////////////////////////////////
     // Read ephemeris
     ////////////////////////////////////////////////////////////
-    if(use_ftp) {
+    if (use_ftp) {
         time_t t = time(NULL);
         struct tm *tm = localtime(&t);
         char* url = malloc(NAME_MAX);
@@ -1968,7 +1978,7 @@ int main(int argc, char *argv[]) {
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite_rinex);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ftp);
             curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_NONE);
-            if(verb) {
+            if (verb) {
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             } else {
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
@@ -1985,8 +1995,11 @@ int main(int argc, char *argv[]) {
             fclose(ftp.stream);
 
         if (res == CURLE_OK) {
-            if(system("zcat " RINEX_FILE_NAME " > brdc.n") != 0) {
+            if (system("zcat " RINEX_FILE_NAME " > brdc.n") != 0) {
                 fprintf(stderr, "ERROR: Unpacking RINEX file.\n");
+            }
+            if (navfile == NULL) {
+                navfile = default_filename;
             }
         }
 
@@ -2086,8 +2099,8 @@ int main(int argc, char *argv[]) {
         t0 = tmin;
     }
 
-    fprintf(stderr,"Gain: %.1fdB\n", plutotx.gain_db);
-    fprintf(stderr,"RINEX date = %s\n", rinex_date);
+    fprintf(stderr, "Gain: %.1fdB\n", plutotx.gain_db);
+    fprintf(stderr, "RINEX date = %s\n", rinex_date);
     fprintf(stderr, "Start time = %4d/%02d/%02d,%02d:%02d:%02.0f (%d:%.0f)\n",
             t0.y, t0.m, t0.d, t0.hh, t0.mm, t0.sec, g0.week, g0.sec);
 
@@ -2170,7 +2183,7 @@ int main(int argc, char *argv[]) {
     // Update receiver time
     grx = incGpsTime(grx, 0.1);
 
-    while(!plutotx.exit) {
+    while (!plutotx.exit) {
         for (i = 0; i < MAX_CHAN; i++) {
             if (chan[i].prn > 0) {
                 // Refresh code phase and data bit counters
@@ -2267,6 +2280,10 @@ int main(int argc, char *argv[]) {
             i_acc = (i_acc + iq_offset) >> iq_shift;
             q_acc = (q_acc + iq_offset) >> iq_shift;
 
+            if (i_acc > SHRT_MAX || q_acc > SHRT_MAX || i_acc < SHRT_MIN || q_acc < SHRT_MIN) {
+                fprintf(stderr, "IQ clipping: %ld %ld\n", i_acc, q_acc);
+            }
+
             // Store I/Q samples into buffer
             iq_buff[isamp * 2] = (short) i_acc;
             iq_buff[isamp * 2 + 1] = (short) q_acc;
@@ -2320,6 +2337,8 @@ exit_main_thread:
     pthread_mutex_destroy(&plutotx.data_mutex);
 
     // Free I/Q buffers
-    if(iq_buff) { free(iq_buff); }
+    if (iq_buff) {
+        free(iq_buff);
+    }
     return (0);
 }

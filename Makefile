@@ -1,5 +1,5 @@
 DIALECT = -std=c11
-CFLAGS += $(DIALECT) -O2 -g -W -Wall -D_GNU_SOURCE
+CFLAGS += $(DIALECT) -O0 -g -W -Wall -D_GNU_SOURCE
 LIBS = -lm -lpthread -lcurl
 
 CFLAGS += $(shell pkg-config --cflags libiio libad9361)
